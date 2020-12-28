@@ -21,6 +21,18 @@ app.use(morgan("tiny"));
 app.use(cors());
 app.use(json());
 
+import graphQlSchema from "./graphql/schema";
+
+// endpoint
+app.use(
+  "/graphql",
+  graphqlHTTP({
+    schema: graphQlSchema,
+    rootValue: graphQlResolvers,
+    graphiql: true,
+  })
+);
+
 // database connect > server start
 mongoose
   .connect(DATABASE_URI, { useNewUrlParser: true, useUnifiedTopology: true })
