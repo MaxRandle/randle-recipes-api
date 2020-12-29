@@ -1,4 +1,5 @@
-import { Schema, model } from "mongoose";
+import pkg from "mongoose";
+const { Schema, model } = pkg;
 
 const tagSchema = new Schema({
   recipes: [
@@ -10,6 +11,10 @@ const tagSchema = new Schema({
   name: {
     type: String,
     required: true,
+    index: {
+      unique: true,
+      collation: { locale: "en", strength: 1 },
+    },
   },
 });
 

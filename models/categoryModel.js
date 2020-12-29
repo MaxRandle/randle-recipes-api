@@ -1,16 +1,19 @@
-import { Schema, model } from "mongoose";
+import pkg from "mongoose";
+const { Schema, model } = pkg;
 
 const categorySchema = new Schema({
+  name: {
+    type: String,
+    required: true,
+    unique: true,
+    index: true,
+  },
   recipes: [
     {
       type: Schema.Types.ObjectId,
       ref: "Recipe",
     },
   ],
-  name: {
-    type: String,
-    required: true,
-  },
 });
 
 export default model("Category", categorySchema);
