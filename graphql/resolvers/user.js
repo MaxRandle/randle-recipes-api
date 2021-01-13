@@ -32,7 +32,7 @@ export const createUser = async (args) => {
     email,
     password: passwordHash,
     name,
-    role: "contributor",
+    role: "Contributor",
     recipes: [],
   });
   // save user as a document in the users collection

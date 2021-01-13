@@ -2,6 +2,7 @@ import Tag from "../../models/tagModel.js";
 import Recipe from "../../models/recipeModel.js";
 import Category from "../../models/categoryModel.js";
 import Dietary from "../../models/dietaryModel.js";
+import User from "../../models/userModel.js";
 
 //functions for merging together data based on their relationships
 
@@ -25,7 +26,7 @@ export const enrichRecipe = async (recipe) => ({
   tags: () => findTagsByIds(recipe._doc.tags),
   category: () => findCategoryById(recipe._doc.category),
   dietaries: () => findDietariesByIds(recipe._doc.dietaries),
-  author: () => enrichUser(recipe._doc.author),
+  author: () => findUserById(recipe._doc.author),
 });
 
 export const enrichUser = (user) => ({
@@ -54,4 +55,9 @@ const findCategoryById = async (categoryId) => {
 const findDietariesByIds = async (dietaryIds) => {
   const dietaries = await Dietary.find({ _id: { $in: dietaryIds } });
   return dietaries.map((dietary) => enrichDietary(dietary));
+};
+
+const findUserById = async (userId) => {
+  const user = await User.findById(userId);
+  return enrichUser(user);
 };
