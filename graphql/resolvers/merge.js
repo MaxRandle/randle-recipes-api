@@ -4,7 +4,13 @@ import Category from "../../models/categoryModel.js";
 import Dietary from "../../models/dietaryModel.js";
 import User from "../../models/userModel.js";
 
-//functions for merging together data based on their relationships
+// functions for merging together data based on their relationships
+
+// every document that is sent out must be passed through an enrich function
+// the enrich functions have 3 important jobs:
+// populate links within a document with the document that they are referencing
+// map some database types into more easily consumable ones
+// sterilise document of any sensitive data before it is sent out
 
 export const enrichCategory = async (category) => ({
   ...category._doc,
@@ -27,6 +33,8 @@ export const enrichRecipe = async (recipe) => ({
   category: () => findCategoryById(recipe._doc.category),
   dietaries: () => findDietariesByIds(recipe._doc.dietaries),
   author: () => findUserById(recipe._doc.author),
+  createdAt: dbDateToIsoString(recipe._doc.createdAt),
+  updatedAt: dbDateToIsoString(recipe._doc.updatedAt),
 });
 
 export const enrichUser = (user) => ({
@@ -61,3 +69,7 @@ const findUserById = async (userId) => {
   const user = await User.findById(userId);
   return enrichUser(user);
 };
+
+// helper functions
+
+const dbDateToIsoString = (date) => new Date(date).toISOString();

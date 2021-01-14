@@ -31,7 +31,7 @@ import * as dietaryResolvers from "./graphql/resolvers/dietary.js";
 import * as recipeResolvers from "./graphql/resolvers/recipe.js";
 import * as userResolvers from "./graphql/resolvers/user.js";
 
-// endpoint
+// graphql endpoint
 app.use(
   "/graphql",
   graphqlHTTP({

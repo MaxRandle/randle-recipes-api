@@ -55,6 +55,8 @@ const schema = buildSchema(`
         tips: [String]
         difficulty: Int
         equipment: [String]!
+        createdAt: String!
+        updatedAt: String!
     }
 
     input RecipeInput {
