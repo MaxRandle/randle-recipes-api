@@ -43,14 +43,9 @@ export const deleteRecipe = async (args, req) => {
     throw new Error("Recipe not found.");
   }
 
-  await removeRecipeLinks(
-    recipe,
-    recipe.category,
-    recipe.tags,
-    recipe.dietaries
-  );
-
-  return enrichRecipe(await recipe.delete());
+  await removeRecipeLinks(recipe);
+  const deletedRecipe = await recipe.delete();
+  return enrichRecipe(deletedRecipe);
 };
 
 export const updateRecipe = async (args, req) => {
@@ -85,12 +80,7 @@ export const updateRecipe = async (args, req) => {
     recipe[fieldName] = recipeInput[fieldName];
   });
 
-  await removeRecipeLinks(
-    recipe,
-    recipe.category,
-    recipe.tags,
-    recipe.dietaries
-  );
+  await removeRecipeLinks(recipe);
 
   await addRecipeLinks(
     recipe,
@@ -104,26 +94,24 @@ export const updateRecipe = async (args, req) => {
 
 const addRecipeLinks = async (recipe, categoryId, tagNames, dietaryIds) => {
   // get the related documents
-  const category = Category.findById(categoryId);
-  const tags = tagNames.map(async (tagName) => {
-    let tag = await Tag.findOne({ name: tagName }).collation({
-      locale: "en",
-      strength: 1,
-    });
-    if (!tag) {
-      const newTag = new Tag({ name: tagName, recipes: [] });
-      tag = await newTag.save();
-    }
-    return tag;
-  });
-  const dietaries = dietaryIds.map((dietary) => Dietary.findById(dietary));
 
-  await Promise.all(category, ...tags, ...dietaries);
-
-  // all the references to the recipe
-  recipe.category = categoryId;
-  recipe.tags = tags;
-  recipe.dietaries = dietaryIds;
+  const [category, tags, dietaries] = await Promise.all([
+    Category.findById(categoryId),
+    Promise.all(
+      tagNames.map(async (tagName) => {
+        let tag = await Tag.findOne({ name: tagName }).collation({
+          locale: "en",
+          strength: 1,
+        });
+        if (!tag) {
+          const newTag = new Tag({ name: tagName, recipes: [] });
+          tag = await newTag.save();
+        }
+        return tag;
+      })
+    ),
+    Promise.all(dietaryIds.map((dietary) => Dietary.findById(dietary))),
+  ]);
 
   // add the recipe ID into the related documents recipe arrays
   await Promise.all(
@@ -132,22 +120,28 @@ const addRecipeLinks = async (recipe, categoryId, tagNames, dietaryIds) => {
     ...dietaries.map((dietary) => dietary.recipes.push(recipe).save())
   );
 
+  // add the references to the recipe
+  recipe.category = categoryId;
+  recipe.tags = tags;
+  recipe.dietaries = dietaryIds;
+
   // return updated recipe
   return await recipe.save();
 };
 
-const removeRecipeLinks = async (recipeId, categoryId, tagIds, dietaryIds) => {
-  // get the related documents
-  const category = Category.findById(categoryId);
-  const tags = Promise.all(tagIds.map((tag) => Tag.findById(tag)));
-  const dietaries = Promise.all(
-    dietaryIds.map((detiary) => Dietary.findById(detiary))
-  );
+const removeRecipeLinks = async (recipe) => {
+  const {
+    _id: recipeId,
+    category: categoryId,
+    tags: tagIds,
+    dietaries: dietaryIds,
+  } = recipe;
 
-  await Promise.all([category, tags, dietaries]);
-
-  console.log(category);
-  // console.log(tags);
+  const [category, tags, dietaries] = await Promise.all([
+    Category.findById(categoryId),
+    Promise.all(tagIds.map((tag) => Tag.findById(tag))),
+    Promise.all(dietaryIds.map((detiary) => Dietary.findById(detiary))),
+  ]);
 
   // remove the recipeId from all the related documents
   const filterFunc = (id) => id !== recipeId;

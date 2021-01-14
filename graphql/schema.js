@@ -95,6 +95,7 @@ const schema = buildSchema(`
     type RootMutation {
         createTag(name: String!): GenericTag!
         createDietary(name: String!): GenericTag!
+        createCategory(name: String!): GenericTag!
         createUser(userInput: UserInput): User!
         createRecipe(recipeInput: RecipeInput!): Recipe!
         deleteRecipe(recipeId: String!): Recipe!
