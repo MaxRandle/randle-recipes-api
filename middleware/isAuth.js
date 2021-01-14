@@ -32,8 +32,12 @@ const isAuth = () => (req, res, next) => {
     return next();
   }
 
+  const { userId, userEmail, userRole } = decryptedToken;
+
   req.isAuth = true;
-  req.userId = decryptedToken.userId;
+  req.userId = userId;
+  req.userEmail = userEmail;
+  req.userRole = userRole;
   next();
 };
 
