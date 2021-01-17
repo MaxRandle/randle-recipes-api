@@ -77,9 +77,7 @@ const schema = buildSchema(`
     }
 
     type AuthData {
-        userId: ID!
-        email: String!
-        name: String!
+        user: User!
         token: String!
         tokenExpiration: Int
     }
@@ -90,7 +88,7 @@ const schema = buildSchema(`
         dietaries: [GenericTag!]!
         recipes: [Recipe!]!
         login(email: String! password: String!): AuthData!
-        verifyJwt: AuthData!
+        verifyJwt: User!
         getTagByName(name: String!): GenericTag
     }
 

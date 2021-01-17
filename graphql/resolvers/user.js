@@ -63,9 +63,7 @@ export const login = async ({ email, password }) => {
   );
 
   return {
-    userId: user.id,
-    email,
-    name: user.name,
+    user: () => enrichUser(user),
     token,
     tokenExpiration: tokenExpiresIn,
   };
@@ -75,12 +73,8 @@ export const verifyJwt = async (args, req) => {
   if (!req.isAuth) {
     throw new Error("Invalid Token");
   }
+
   const user = await User.findById(req.userId);
-  return {
-    userId: user.id,
-    email: user.email,
-    name: user.name,
-    token: null,
-    tokenExpiration: null,
-  };
+
+  return enrichUser(user);
 };

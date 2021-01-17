@@ -7,7 +7,7 @@ import User from "../../models/userModel.js";
 // functions for merging together data based on their relationships
 
 // every document that is sent out must be passed through an enrich function
-// the enrich functions have 3 important jobs:
+// the enrich functions have 3 jobs:
 // populate links within a document with the document that they are referencing
 // map some database types into more easily consumable ones
 // sterilise document of any sensitive data before it is sent out

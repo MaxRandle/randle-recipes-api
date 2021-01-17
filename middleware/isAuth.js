@@ -25,8 +25,6 @@ const isAuth = () => (req, res, next) => {
     return next();
   }
 
-  console.log(decryptedToken);
-
   if (!decryptedToken) {
     req.isAuth = false;
     return next();

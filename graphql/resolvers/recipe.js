@@ -113,12 +113,20 @@ const addRecipeLinks = async (recipe, categoryId, tagNames, dietaryIds) => {
     Promise.all(dietaryIds.map((dietary) => Dietary.findById(dietary))),
   ]);
 
+  console.log(category._doc);
+
   // add the recipe ID into the related documents recipe arrays
-  await Promise.all(
-    category.recipes.push(recipe).save(),
-    ...tags.map((tag) => tag.recipes.push(recipe).save()),
-    ...dietaries.map((dietary) => dietary.recipes.push(recipe).save())
-  );
+  category.recipes.push(recipe);
+  tags.map((tag) => tag.recipes.push(recipe));
+  dietaries.map((dietary) => dietary.recipes.push(recipe));
+
+  console.log(tags);
+
+  await Promise.all([
+    category.save(),
+    ...tags.map((tag) => tag.save()),
+    ...dietaries.map((dietary) => dietary.save()),
+  ]);
 
   // add the references to the recipe
   recipe.category = categoryId;

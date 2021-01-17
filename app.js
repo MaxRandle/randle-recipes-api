@@ -43,7 +43,7 @@ app.use(
       ...recipeResolvers,
       ...userResolvers,
     },
-    graphiql: true,
+    graphiql: !__prod__,
   })
 );
 
