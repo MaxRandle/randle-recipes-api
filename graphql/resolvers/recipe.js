@@ -3,6 +3,7 @@ import Tag from "../../models/tagModel.js";
 import Category from "../../models/categoryModel.js";
 import Dietary from "../../models/dietaryModel.js";
 import { enrichRecipe } from "./merge.js";
+import { roles } from "../accessControl.js";
 
 export const recipes = async (args, req) => {
   const recipes = await Recipe.find();
@@ -10,9 +11,14 @@ export const recipes = async (args, req) => {
 };
 
 export const createRecipe = async (args, req) => {
+  // access control
   if (!req.isAuth) {
     throw new Error("Unauthenticated request to a restricted resource.");
   }
+  if (req.userRole === roles.reader) {
+    throw new Error("Readers may not create recipes.");
+  }
+
   const { tags: tagNames } = args.recipeInput;
 
   const newRecipe = new Recipe({
@@ -34,13 +40,21 @@ export const createRecipe = async (args, req) => {
 };
 
 export const deleteRecipe = async (args, req) => {
+  const { recipeId } = args;
   if (!req.isAuth) {
     throw new Error("Unauthenticated request to a restricted resource.");
   }
-
-  const recipe = await Recipe.findById(args.recipeId);
+  if (req.userRole === roles.reader) {
+    throw new Error("Readers may not delete recipes.");
+  }
+  const recipe = await Recipe.findById(recipeId);
   if (!recipe) {
     throw new Error("Recipe not found.");
+  }
+  if (req.userRole === roles.contributor) {
+    if (req.userId !== recipe._doc._id) {
+      throw new Error("Contributors may only delete their own recipes");
+    }
   }
 
   await removeRecipeLinks(recipe);
@@ -49,52 +63,48 @@ export const deleteRecipe = async (args, req) => {
 };
 
 export const updateRecipe = async (args, req) => {
+  const { recipeId, recipeInput } = args;
   if (!req.isAuth) {
     throw new Error("Unauthenticated request to a restricted resource.");
   }
-  const { recipeId, recipeInput } = args.recipeInput;
-
+  if (req.userRole === roles.reader) {
+    throw new Error("Readers may not modify recipes.");
+  }
   const recipe = await Recipe.findById(recipeId);
   if (!recipe) {
     throw new Error("Recipe not found.");
   }
+  if (req.userRole === roles.contributor) {
+    if (req.userId !== recipe._doc._id) {
+      throw new Error("Contributors may only modify their own recipes");
+    }
+  }
 
-  const updateFields = [
-    "title",
-    "subtitle",
-    "intro",
-    // "category",
-    // "tags",
-    // "dietaries",
-    "photos",
-    "sections",
-    "size",
-    "prepTime",
-    "cookTime",
-    "tips",
-    "difficulty",
-    "equipment",
-  ];
+  const { category, tags, dietaries, ...fieldsToUpdate } = recipeInput;
 
-  updateFields.forEach((fieldName) => {
+  // update document fields
+  Object.keys(fieldsToUpdate).forEach((fieldName) => {
     recipe[fieldName] = recipeInput[fieldName];
   });
+  console.log("updated recipe fields");
 
+  // rebuild the document links
   await removeRecipeLinks(recipe);
+  console.log("removed recipe links");
 
-  await addRecipeLinks(
-    recipe,
-    recipeInput.category,
-    recipeInput.tags,
-    recipeInput.dietaries
-  );
+  const updatedRecipe = await addRecipeLinks(recipe, category, tags, dietaries);
+  console.log("added recipe links");
 
-  // set recipe to new recipe
+  return enrichRecipe(updatedRecipe);
 };
 
-const addRecipeLinks = async (recipe, categoryId, tagNames, dietaryIds) => {
-  // get the related documents
+// helper functions
 
+const addRecipeLinks = async (recipe, categoryId, tagNames, dietaryIds) => {
+  console.log(categoryId);
+  console.log(tagNames);
+  console.log(dietaryIds);
+  // get the related documents
   const [category, tags, dietaries] = await Promise.all([
     Category.findById(categoryId),
     Promise.all(
@@ -110,7 +120,11 @@ const addRecipeLinks = async (recipe, categoryId, tagNames, dietaryIds) => {
         return tag;
       })
     ),
-    Promise.all(dietaryIds.map((dietary) => Dietary.findById(dietary))),
+    Promise.all(
+      (dietaryIds || recipe.dietaries).map((dietary) =>
+        Dietary.findById(dietary)
+      )
+    ),
   ]);
 
   console.log(category._doc);
@@ -163,7 +177,7 @@ const removeRecipeLinks = async (recipe) => {
 
   return await Promise.all([
     category.save(),
-    ...tags.map((tag) => tag.save()),
-    ...dietaries.map((dietary) => dietary.save()),
+    Promise.all(tags.map((tag) => tag.save())),
+    Promise.all(dietaries.map((dietary) => dietary.save())),
   ]);
 };

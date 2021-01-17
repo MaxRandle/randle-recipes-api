@@ -45,8 +45,8 @@ const schema = buildSchema(`
         subtitle: String!
         intro: String!
         category: GenericTag!
-        tags: [GenericTag]!
-        dietaries: [GenericTag]!
+        tags: [GenericTag]
+        dietaries: [GenericTag]
         photos: [String]
         sections: [Section!]!
         size: String
@@ -54,32 +54,32 @@ const schema = buildSchema(`
         cookTime: String
         tips: [String]
         difficulty: Int
-        equipment: [String]!
+        equipment: [String]
         createdAt: String!
         updatedAt: String!
     }
 
-    input RecipeInput {
+    input RecipeInput  {
         title: String!
         subtitle: String!
         intro: String!
-        category: [String!]!
-        tags: [String]!
-        dietaries: [String]!
-        photos: [String]!
+        category: String!
+        tags: [String]
+        dietaries: [String]
+        photos: [String]
         sections: [SectionInput!]!
         size: String
         prepTime: String
         cookTime: String
         tips: [String]
         difficulty: Int
-        equipment: [String]!
+        equipment: [String]
     }
 
     type AuthData {
         user: User!
         token: String!
-        tokenExpiration: Int
+        tokenExpiration: Int!
     }
 
     type RootQuery {

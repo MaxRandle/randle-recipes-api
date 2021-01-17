@@ -1,10 +1,3 @@
-// const roles = {
-//   admin: "Administrator",
-//   editor: "Editor",
-//   contributor: "Contributor",
-//   reader: "Reader",
-// };
-
 // const actions = {};
 
 // const isAuthorized = (action, subjectId, request) => {
@@ -26,3 +19,10 @@
 //   }
 //   return { authorized, feedback };
 // };
+
+export const roles = {
+  admin: "Administrator",
+  editor: "Editor",
+  contributor: "Contributor",
+  reader: "Reader",
+};

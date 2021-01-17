@@ -72,4 +72,5 @@ const findUserById = async (userId) => {
 
 // helper functions
 
+// convert date in miliseconds to date in ISO string
 const dbDateToIsoString = (date) => new Date(date).toISOString();
