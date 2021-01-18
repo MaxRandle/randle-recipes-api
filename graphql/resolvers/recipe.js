@@ -81,7 +81,7 @@ export const updateRecipe = async (args, req) => {
   await removeRecipeLinks(recipe);
 
   // tag names to tag ids
-  const { tags: tagNames, ...fieldsToUpdate } = args.recipeInput;
+  const { tags: tagNames, ...fieldsToUpdate } = recipeInput;
   let tagIds;
   if (tagNames) {
     tagIds = await Promise.all(tagNames.map(getOrCreateTag));
