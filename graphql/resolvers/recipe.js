@@ -21,22 +21,19 @@ export const createRecipe = async (args, req) => {
 
   const { tags: tagNames } = args.recipeInput;
 
-  const newRecipe = new Recipe({
+  let tagIds;
+  if (tagNames) {
+    tagIds = await Promise.all(tagNames.map(getOrCreateTag));
+  }
+
+  // create the recipe
+  const newRecipe = await new Recipe({
     ...args.recipeInput,
     author: req.userId,
-    tags: [],
-  });
-
-  const createdRecipe = await newRecipe.save();
-
-  const updatedRecipe = await addRecipeLinks(
-    createdRecipe,
-    createdRecipe.category,
-    tagNames,
-    createdRecipe.dietaries
-  );
-
-  return enrichRecipe(updatedRecipe);
+    tags: tagIds,
+  }).save();
+  await addRecipeLinks(newRecipe);
+  return enrichRecipe(newRecipe);
 };
 
 export const deleteRecipe = async (args, req) => {
@@ -57,8 +54,8 @@ export const deleteRecipe = async (args, req) => {
     }
   }
 
-  await removeRecipeLinks(recipe);
   const deletedRecipe = await recipe.delete();
+  await removeRecipeLinks(deletedRecipe);
   return enrichRecipe(deletedRecipe);
 };
 
@@ -75,80 +72,62 @@ export const updateRecipe = async (args, req) => {
     throw new Error("Recipe not found.");
   }
   if (req.userRole === roles.contributor) {
-    if (req.userId !== recipe._doc._id) {
+    if (req.userId !== recipe._id) {
       throw new Error("Contributors may only modify their own recipes");
     }
   }
 
-  const { category, tags, dietaries, ...fieldsToUpdate } = recipeInput;
+  // remove existing document links
+  await removeRecipeLinks(recipe);
+
+  // tag names to tag ids
+  const { tags: tagNames, ...fieldsToUpdate } = args.recipeInput;
+  let tagIds;
+  if (tagNames) {
+    tagIds = await Promise.all(tagNames.map(getOrCreateTag));
+  }
+  fieldsToUpdate.tags = tagIds;
 
   // update document fields
   Object.keys(fieldsToUpdate).forEach((fieldName) => {
-    recipe[fieldName] = recipeInput[fieldName];
+    if (fieldName) {
+      recipe[fieldName] = fieldsToUpdate[fieldName];
+    }
   });
-  console.log("updated recipe fields");
+  const updatedRecipe = await recipe.save();
 
-  // rebuild the document links
-  await removeRecipeLinks(recipe);
-  console.log("removed recipe links");
-
-  const updatedRecipe = await addRecipeLinks(recipe, category, tags, dietaries);
-  console.log("added recipe links");
+  await addRecipeLinks(updatedRecipe);
 
   return enrichRecipe(updatedRecipe);
 };
 
 // helper functions
 
-const addRecipeLinks = async (recipe, categoryId, tagNames, dietaryIds) => {
-  console.log(categoryId);
-  console.log(tagNames);
-  console.log(dietaryIds);
+const addRecipeLinks = async (recipe) => {
+  const {
+    _id: recipeId,
+    category: categoryId,
+    tags: tagIds,
+    dietaries: dietaryIds,
+  } = recipe;
+
   // get the related documents
   const [category, tags, dietaries] = await Promise.all([
     Category.findById(categoryId),
-    Promise.all(
-      tagNames.map(async (tagName) => {
-        let tag = await Tag.findOne({ name: tagName }).collation({
-          locale: "en",
-          strength: 1,
-        });
-        if (!tag) {
-          const newTag = new Tag({ name: tagName, recipes: [] });
-          tag = await newTag.save();
-        }
-        return tag;
-      })
-    ),
-    Promise.all(
-      (dietaryIds || recipe.dietaries).map((dietary) =>
-        Dietary.findById(dietary)
-      )
-    ),
+    Promise.all(tagIds.map((tag) => Tag.findById(tag))),
+    Promise.all(dietaryIds.map((dietary) => Dietary.findById(dietary))),
   ]);
 
-  console.log(category._doc);
+  // add the recipeId into the related documents recipe arrays
+  category.recipes.push(recipeId);
+  tags.map((tag) => tag.recipes.push(recipeId));
+  dietaries.map((dietary) => dietary.recipes.push(recipeId));
 
-  // add the recipe ID into the related documents recipe arrays
-  category.recipes.push(recipe);
-  tags.map((tag) => tag.recipes.push(recipe));
-  dietaries.map((dietary) => dietary.recipes.push(recipe));
-
-  console.log(tags);
-
-  await Promise.all([
+  return await Promise.all([
     category.save(),
-    ...tags.map((tag) => tag.save()),
-    ...dietaries.map((dietary) => dietary.save()),
+    Promise.all(tags.map((tag) => tag.save())),
+    Promise.all(dietaries.map((dietary) => dietary.save())),
   ]);
-
-  // add the references to the recipe
-  recipe.category = categoryId;
-  recipe.tags = tags;
-  recipe.dietaries = dietaryIds;
-
-  // return updated recipe
-  return await recipe.save();
 };
 
 const removeRecipeLinks = async (recipe) => {
@@ -159,13 +138,14 @@ const removeRecipeLinks = async (recipe) => {
     dietaries: dietaryIds,
   } = recipe;
 
+  // get the related documents
   const [category, tags, dietaries] = await Promise.all([
     Category.findById(categoryId),
     Promise.all(tagIds.map((tag) => Tag.findById(tag))),
-    Promise.all(dietaryIds.map((detiary) => Dietary.findById(detiary))),
+    Promise.all(dietaryIds.map((dietary) => Dietary.findById(dietary))),
   ]);
 
-  // remove the recipeId from all the related documents
+  // remove the recipeId from all the related documents recipe arrays
   const filterFunc = (id) => id !== recipeId;
   category.recipes = category.recipes.filter(filterFunc);
   tags.forEach((tag) => {
@@ -180,4 +160,16 @@ const removeRecipeLinks = async (recipe) => {
     Promise.all(tags.map((tag) => tag.save())),
     Promise.all(dietaries.map((dietary) => dietary.save())),
   ]);
+};
+
+const getOrCreateTag = async (name) => {
+  let tag = await Tag.findOne({ name }).collation({
+    locale: "en",
+    strength: 1,
+  });
+  if (!tag) {
+    const newTag = new Tag({ name, recipes: [] });
+    tag = await newTag.save();
+  }
+  return tag;
 };
