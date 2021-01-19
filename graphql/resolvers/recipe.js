@@ -6,6 +6,10 @@ import { enrichRecipe } from "./merge.js";
 import { roles } from "../accessControl.js";
 
 export const recipes = async (args, req) => {
+  if (!req.isAuth) {
+    throw new Error("Unauthenticated request to a restricted resource.");
+  }
+
   const recipes = await Recipe.find();
   return recipes.map((recipe) => enrichRecipe(recipe));
 };
