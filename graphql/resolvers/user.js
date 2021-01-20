@@ -107,9 +107,6 @@ export const setUserRole = async (args, req) => {
 export const resetUserPassword = async (args, req) => {
   const { userId } = args;
 
-  console.log(req.userRole);
-  console.log(roles.admin);
-
   if (!req.isAuth) {
     throw new Error("Unauthenticated request to a restricted resource.");
   } else if (req.userRole !== roles.admin) {
