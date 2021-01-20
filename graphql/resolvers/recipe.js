@@ -4,6 +4,7 @@ import Category from "../../models/categoryModel.js";
 import Dietary from "../../models/dietaryModel.js";
 import { enrichRecipe } from "./merge.js";
 import { roles } from "../accessControl.js";
+import User from "../../models/userModel.js";
 
 export const recipes = async (args, req) => {
   if (!req.isAuth) {
@@ -110,24 +111,28 @@ export const updateRecipe = async (args, req) => {
 const addRecipeLinks = async (recipe) => {
   const {
     _id: recipeId,
+    author: authorId,
     category: categoryId,
     tags: tagIds,
     dietaries: dietaryIds,
   } = recipe;
 
   // get the related documents
-  const [category, tags, dietaries] = await Promise.all([
+  const [author, category, tags, dietaries] = await Promise.all([
+    User.findById(authorId),
     Category.findById(categoryId),
     Promise.all(tagIds.map((tag) => Tag.findById(tag))),
     Promise.all(dietaryIds.map((dietary) => Dietary.findById(dietary))),
   ]);
 
   // add the recipeId into the related documents recipe arrays
+  author.recipes.push(recipeId);
   category.recipes.push(recipeId);
   tags.map((tag) => tag.recipes.push(recipeId));
   dietaries.map((dietary) => dietary.recipes.push(recipeId));
 
   return await Promise.all([
+    author.save(),
     category.save(),
     Promise.all(tags.map((tag) => tag.save())),
     Promise.all(dietaries.map((dietary) => dietary.save())),
@@ -137,13 +142,15 @@ const addRecipeLinks = async (recipe) => {
 const removeRecipeLinks = async (recipe) => {
   const {
     _id: recipeId,
+    author: authorId,
     category: categoryId,
     tags: tagIds,
     dietaries: dietaryIds,
   } = recipe;
 
   // get the related documents
-  const [category, tags, dietaries] = await Promise.all([
+  const [author, category, tags, dietaries] = await Promise.all([
+    User.findById(authorId),
     Category.findById(categoryId),
     Promise.all(tagIds.map((tag) => Tag.findById(tag))),
     Promise.all(dietaryIds.map((dietary) => Dietary.findById(dietary))),
@@ -151,6 +158,7 @@ const removeRecipeLinks = async (recipe) => {
 
   // remove the recipeId from all the related documents recipe arrays
   const filterFunc = (id) => id !== recipeId;
+  author.recipes = author.recipes.filter(filterFunc);
   category.recipes = category.recipes.filter(filterFunc);
   tags.forEach((tag) => {
     tag.recipes = tag.recipes.filter(filterFunc);
@@ -160,6 +168,7 @@ const removeRecipeLinks = async (recipe) => {
   });
 
   return await Promise.all([
+    author.save(),
     category.save(),
     Promise.all(tags.map((tag) => tag.save())),
     Promise.all(dietaries.map((dietary) => dietary.save())),

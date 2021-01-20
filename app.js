@@ -4,7 +4,9 @@ import cors from "cors";
 import helmet from "helmet";
 import morgan from "morgan";
 import { graphqlHTTP } from "express-graphql";
+import depthLimit from "graphql-depth-limit";
 import isAuth from "./middleware/isAuth.js";
+import blockMaliciousQueries from "./middleware/blockMaliciousQueries.js";
 import dotenv from "dotenv";
 dotenv.config();
 
@@ -22,6 +24,7 @@ app.use(morgan("tiny"));
 app.use(cors());
 app.use(json());
 app.use(isAuth());
+app.use(blockMaliciousQueries());
 
 // schema
 import graphQlSchema from "./graphql/schema.js";
@@ -46,6 +49,7 @@ app.use(
       ...userResolvers,
     },
     graphiql: !__prod__,
+    validationRules: [depthLimit(8)],
   })
 );
 

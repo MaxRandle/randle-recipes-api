@@ -1,3 +1,4 @@
+import Recipe from "../../models/recipeModel.js";
 import Tag from "../../models/tagModel.js";
 import { roles } from "../accessControl.js";
 import { enrichTag } from "./merge.js";
@@ -78,4 +79,37 @@ export const renameTag = async (args, req) => {
   tag.name = newName;
   const updatedTag = await tag.save();
   return enrichTag(updatedTag);
+};
+
+export const deleteTag = async (args, req) => {
+  const { tagId } = args;
+
+  if (!req.isAuth) {
+    throw new Error("Unauthenticated request to a restricted resource.");
+  } else if (req.userRole !== roles.admin) {
+    throw new Error("You are not authorized to perform that action.");
+  }
+
+  const tag = await Tag.findById(tagId);
+  if (!tag) {
+    throw Error("Tag not found.");
+  }
+
+  // find all the recipes that use that tag
+  const recipes = await Promise.all(
+    tag.recipes.map((recipeId) => Recipe.findById(recipeId))
+  );
+
+  console.log(recipes);
+
+  // delete the tag from those recipes tag arrays
+  recipes.map((recipe) => {
+    recipe.tags = recipe.tags.filter((recipeTagId) => recipeTagId !== tagId);
+  });
+
+  //save the recipes
+  await Promise.all(recipes.map((recipe) => recipe.save()));
+
+  // delete the tag
+  return await tag.delete();
 };
