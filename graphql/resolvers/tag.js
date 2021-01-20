@@ -15,7 +15,7 @@ export const createTag = async (args, req) => {
   const { name } = args;
   if (!req.isAuth) {
     throw new Error("Unauthenticated request to a restricted resource.");
-  } else if (!req.userRole !== roles.admin) {
+  } else if (req.userRole !== roles.admin) {
     throw new Error("You are not authorized to perform that action.");
   }
 

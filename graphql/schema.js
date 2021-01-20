@@ -87,6 +87,7 @@ const schema = buildSchema(`
         tags: [GenericTag!]!
         dietaries: [GenericTag!]!
         recipes: [Recipe!]!
+        users: [User!]!
         login(email: String! password: String!): AuthData!
         verifyJwt: User!
         getTagByName(name: String!): GenericTag
@@ -100,6 +101,9 @@ const schema = buildSchema(`
         createRecipe(recipeInput: RecipeInput!): Recipe!
         deleteRecipe(recipeId: String!): Recipe!
         updateRecipe(recipeId: String! recipeInput: RecipeInput!): Recipe!
+        setUserRole(userId: String!, role: String!): User!
+        resetUserPassword(userId: String!): String!
+        changeUserPassword(currentPassword: String!, newPassword: String!): User!
     }
 
     schema {

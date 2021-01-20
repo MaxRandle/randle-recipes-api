@@ -89,7 +89,7 @@ export const setUserRole = async (args, req) => {
   const { userId, role } = args;
   if (!req.isAuth) {
     throw new Error("Unauthenticated request to a restricted resource.");
-  } else if (!req.userRole !== roles.admin) {
+  } else if (req.userRole !== roles.admin) {
     throw new Error("You are not authorized to perform that action.");
   }
 
@@ -106,9 +106,13 @@ export const setUserRole = async (args, req) => {
 
 export const resetUserPassword = async (args, req) => {
   const { userId } = args;
+
+  console.log(req.userRole);
+  console.log(roles.admin);
+
   if (!req.isAuth) {
     throw new Error("Unauthenticated request to a restricted resource.");
-  } else if (!req.userRole !== roles.admin) {
+  } else if (req.userRole !== roles.admin) {
     throw new Error("You are not authorized to perform that action.");
   }
 
@@ -152,5 +156,5 @@ export const changeUserPassword = async (args, req) => {
   user.password = passwordHash;
   await user.save();
 
-  return;
+  return enrichUser(user);
 };
