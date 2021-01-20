@@ -23,8 +23,10 @@ app.use(cors());
 app.use(json());
 app.use(isAuth());
 
-// resolvers
+// schema
 import graphQlSchema from "./graphql/schema.js";
+
+// resolvers
 import * as categoryResolvers from "./graphql/resolvers/category.js";
 import * as tagResolvers from "./graphql/resolvers/tag.js";
 import * as dietaryResolvers from "./graphql/resolvers/dietary.js";

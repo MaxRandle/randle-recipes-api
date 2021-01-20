@@ -90,20 +90,21 @@ const schema = buildSchema(`
         users: [User!]!
         login(email: String! password: String!): AuthData!
         verifyJwt: User!
-        getTagByName(name: String!): GenericTag
+        getTagByName(name: String!): GenericTag!
     }
 
     type RootMutation {
         createTag(name: String!): GenericTag!
+        renameTag(tagId: String! newName: String!): GenericTag!
         createDietary(name: String!): GenericTag!
         createCategory(name: String!): GenericTag!
         createUser(userInput: UserInput): User!
         createRecipe(recipeInput: RecipeInput!): Recipe!
         deleteRecipe(recipeId: String!): Recipe!
         updateRecipe(recipeId: String! recipeInput: RecipeInput!): Recipe!
-        setUserRole(userId: String!, role: String!): User!
+        setUserRole(userId: String! role: String!): User!
         resetUserPassword(userId: String!): String!
-        changeUserPassword(currentPassword: String!, newPassword: String!): User!
+        changeUserPassword(currentPassword: String! newPassword: String!): User!
     }
 
     schema {
